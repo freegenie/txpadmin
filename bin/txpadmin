@@ -11,30 +11,36 @@ include TxpAdmin
 
 options = {}
 
-op = OptionParser.new do |opts|
+op = OptionParser.new() do |opts|
   opts.banner = "Usage: "     
   
-  opts.on("-h", "--help", "Print this message") do |v|
+  opts.on("-h", "--help", "Print this message") do 
     puts opts
     exit 
   end  
   
-  opts.on("-V", "--version", "Print version") do |v|
+  opts.on("-V", "--version", "Print version") do 
     puts "TxpAdmin gem version #{Gem.searcher.find('txp_admin').version.to_s}" 
     exit
   end
   
-  opts.on(nil, "--dbconsole", "Connect to mysql database") do |v|
-    config = TxpAdmin::Config.new.options    
-    password = config[:pass].strip != "" ? " -p#{config[:pass]}" : ""     
-    
-    # FIXME: how do a mysql alias evaluated in exec? 
-    # Example: mysql='mysql --socket=/Applications/xampp/xamppfiles/var/mysql/mysql.sock'    
-    config[:host] = config[:host] == "localhost" ? "127.0.0.1" : config[:host] 
-    
-    commandline = "mysql -u#{config[:user]} #{password} -h#{config[:host]} #{config[:db]}"
-    puts "executing command: #{commandline}"    
-    exec(commandline)
+  opts.on("--backup", "Backup database. Creates a zipped dump in the current directory.") do 
+    TxpAdmin::MysqlConnect.backup
+  end
+  
+  opts.on("--restore FILE_PATH", String, "Restore FILE_PATH dump into database.") do |file_path|    
+    puts "Importing a dump. Enter to continue..."    
+    input = gets("\n").strip 
+    TxpAdmin::MysqlConnect.restore(file_path)
+  end
+  
+  opts.on("--dbconsole", "Connect to mysql database.") do 
+    TxpAdmin::MysqlConnect.console
+    exit
+  end
+  
+  opts.on("--purge-logs", "Remove logs from txplogs.") do 
+    TxpAdmin::MysqlConnect.execute "delete from txp_log" 
     exit
   end
   
@@ -53,11 +59,18 @@ args = ARGV
 args = ["-h"] if ARGV.size == 0 
 
 begin 
-  op.parse(args)
+  op.parse!(args)
 rescue OptionParser::AmbiguousOption => e 
-  op.parse(["-h"])
+  op.parse!(["-h"])
 rescue TxpAdmin::ConfigNotFound => e 
   puts "Config file not found"
+rescue TxpAdmin::RestoreFileNotFound => e 
+  puts "Restore file not found" 
+rescue OptionParser::MissingArgument => e 
+  puts "Missing argument"
+  op.parse!(["-h"])
+rescue Interrupt => e 
+  puts "Interrupted"
 end
 
 
