@@ -24,7 +24,7 @@ op = OptionParser.new do |opts|
     exit
   end
   
-  opts.on(nil, "--console", "Connect to mysql database") do |v|
+  opts.on(nil, "--dbconsole", "Connect to mysql database") do |v|
     config = TxpAdmin::Config.new.options    
     password = config[:pass].strip != "" ? " -p#{config[:pass]}" : ""     
     
