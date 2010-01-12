@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'txp_admin'
+require 'optparse'
+# require 'optparse/time'
+require 'pp'
+
+# http://rubyforge.org/docman/view.php/632/170/index.html
+
+include TxpAdmin
+
+options = {}
+
+op = OptionParser.new do |opts|
+  opts.banner = "Usage: "     
+  
+  opts.on("-h", "--help", "Print this message") do |v|
+    puts opts
+    exit 
+  end  
+  
+  opts.on("-V", "--version", "Print version") do |v|
+    puts "TxpAdmin gem version #{Gem.searcher.find('txp_admin').version.to_s}" 
+    exit
+  end
+  
+  opts.on(nil, "--console", "Connect to mysql database") do |v|
+    config = TxpAdmin::Config.new.options    
+    password = config[:pass].strip != "" ? " -p#{config[:pass]}" : ""     
+    
+    # FIXME: how do a mysql alias evaluated in exec? 
+    # Example: mysql='mysql --socket=/Applications/xampp/xamppfiles/var/mysql/mysql.sock'    
+    config[:host] = config[:host] == "localhost" ? "127.0.0.1" : config[:host] 
+    
+    commandline = "mysql -u#{config[:user]} #{password} -h#{config[:host]} #{config[:db]}"
+    puts "executing command: #{commandline}"    
+    exec(commandline)
+    exit
+  end
+  
+  # opts.on(nil, "--config", "Print txp configuration") do |v|
+  #   begin
+  #     config = `cat textpattern/config.php`      
+  #   rescue => e
+  #     puts "Not a textpattern directory"
+  #     exit
+  #   end
+  # end
+  
+end 
+
+args = ARGV 
+args = ["-h"] if ARGV.size == 0 
+
+begin 
+  op.parse(args)
+rescue OptionParser::AmbiguousOption => e 
+  op.parse(["-h"])
+rescue TxpAdmin::ConfigNotFound => e 
+  puts "Config file not found"
+end
+
+
+
+
