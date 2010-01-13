@@ -66,6 +66,9 @@ rescue TxpAdmin::ConfigNotFound => e
   puts "Config file not found"
 rescue TxpAdmin::RestoreFileNotFound => e 
   puts "Restore file not found" 
+rescue OptionParser::InvalidOption => e 
+  puts "Invalid argument"
+  op.parse!(["-h"])
 rescue OptionParser::MissingArgument => e 
   puts "Missing argument"
   op.parse!(["-h"])
