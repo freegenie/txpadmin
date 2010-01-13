@@ -33,7 +33,6 @@ module TxpAdmin
     
     def self.restore(filename) 
       raise RestoreFileNotFound unless File.exists?(filename)      
-      # "Restoring file #{filename}. Continue? [Y/n] "
       command = "gunzip -c #{filename} | #{self.commandline}"
       exec(command)
     end
@@ -69,12 +68,17 @@ module TxpAdmin
     def self.parse_config_file(path=".")          
       config_file = "#{path}/textpattern/config.php"      
       raise TxpAdmin::ConfigNotFound unless File.exists?(config_file)            
-      config = `cat #{config_file}`
+      
+      config_lines = File.readlines(config_file)
+      config_to_eval = String.new 
+      
+      config_lines.each do |line|
+         config_to_eval << line if (line.include? "$txpcfg" and !line.include? "define")
+      end
+            
+      config_to_eval.gsub!("$txpcfg", "txpcfg") 
       txpcfg = {}
-      config.gsub!("<?php", "")
-      config.gsub!("?>", "")
-      config.gsub!("$txpcfg", "txpcfg")
-      eval(config)            
+      eval(config_to_eval)            
       txpcfg.each do |key,value|
         txpcfg[key.to_sym] = value
       end  
